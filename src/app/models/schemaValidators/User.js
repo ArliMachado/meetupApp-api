@@ -11,7 +11,7 @@ const Create = Yup.object().shape({
 });
 
 const Update = Yup.object().shape({
-  name: Yup.string().required(),
+  name: Yup.string(),
   email: Yup.string().email(),
   oldPassword: Yup.string().min(6),
   password: Yup.string()
