@@ -1,13 +1,23 @@
-import { Op } from 'sequelize';
-import { isSameHour, startOfDay, endOfDay } from 'date-fns';
 import Meetup from '../models/Meetup';
+import User from '../models/User';
 import Subscrible from '../models/Subscrible';
+
+import Queue from '../../lib/Queue';
+import SubscribleMail from '../jobs/SubscribledMail';
 
 class SubscribleController {
   async store(req, res) {
     const { meetup_id } = req.query;
 
-    const meetup = await Meetup.findByPk(meetup_id);
+    const meetup = await Meetup.findByPk(meetup_id, {
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name', 'email'],
+        },
+      ],
+    });
 
     if (!meetup) {
       return res.status(400).json({ error: "Meetup does't exist" });
@@ -43,6 +53,7 @@ class SubscribleController {
       include: [
         {
           model: Meetup,
+          as: 'meetup',
           required: true,
           where: {
             date: meetup.date,
@@ -60,6 +71,10 @@ class SubscribleController {
     const subscrible = await Subscrible.create({
       meetup_id,
       user_id: req.userId,
+    });
+
+    await Queue.add(SubscribleMail.key, {
+      meetup,
     });
 
     return res.json(subscrible);
